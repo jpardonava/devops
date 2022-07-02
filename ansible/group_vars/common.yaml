@@ -1,0 +1,4 @@
+---
+
+labdomain: 'example.com'
+dnf_packages_common: ['chrony','firewalld']

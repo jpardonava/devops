@@ -1,0 +1,3 @@
+---
+
+dnf_packages_nfs: ['nfs-utils','nfs4-acl-tools']
