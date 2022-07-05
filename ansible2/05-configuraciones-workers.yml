@@ -1,0 +1,9 @@
+---
+
+- name: Realizando configuraciones en los Workers
+  hosts: workers
+  vars_files:
+    - "group_vars/kubernetes.yaml"
+  gather_facts: true
+  roles:
+    - workers

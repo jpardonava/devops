@@ -1,0 +1,9 @@
+- name: reboot_vm
+  reboot:
+  become: yes
+
+- name: reload_firewalld
+  systemd:
+    name: firewalld
+    state: reloaded
+  become: yes

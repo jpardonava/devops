@@ -1,0 +1,21 @@
+---
+
+# Red de Docker configurada en el master. La obtenemos a través de los facts
+docker_network: "{{ ansible_docker0.ipv4.network }}/16"
+#docker_network: "{{ ansible_docker0.ipv4.network }}/{{ ansible_docker0.ipv4.netmask }}"
+
+# Aquí definimos la red por defecto para los pods. Podemos cambiarla si así lo deseamos.
+#pod_network: "10.0.0.0/24"
+pod_network: "172.0.0.0/24"
+# Aquí definimos que tipo de SDN queremos desplegar Calico o Flannel
+sdn: flannel
+
+
+port_master:
+  - {port: 6443/tcp, state: enabled }
+  - {port: 2379-2380/tcp, state: enabled  }
+  - {port: 10250-10252/tcp, state: enabled }
+  - {port: 10255/tcp, state: enabled }
+
+kubernetes_admin: "/etc/kubernetes/admin.conf"
+jmespath_query: "token"

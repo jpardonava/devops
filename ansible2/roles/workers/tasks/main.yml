@@ -1,0 +1,45 @@
+#- debug:
+#    msg: "El CERT Hash del master es: {{ cert_hash }}"
+#  when: cert_hash is defined
+
+#- debug:
+#    msg: "El Token Hash del master es: {{ token_hash }}"
+#  when: token_hash is defined
+  
+- debug:
+    msg: "La IP del master es: {{ ip_master }}"
+  when: ip_master is defined
+
+- debug:
+        msg: "Comando para el alta de los workers: {{ comando_join_worker }}"
+  when: comando_join_worker is defined  
+
+- name: Habilitamos los puertos necesarios 
+  firewalld:
+    permanent: true
+    zone: public
+    port: "{{ item.port }}"
+    state: "{{ item.state }}"
+  loop:
+    "{{ port_worker }}"
+  become: yes
+
+- name: Reiniciando el servicio Firewalld 
+  systemd:
+    name: firewalld
+    state: restarted
+  become: yes
+ 
+  #- name: Mostramos el comando de unión del worker al master
+  #debug:
+  #  msg: "Se ejecutará: kubeadm join {{ ip_master }}:6443 --token {{ token_hash }} --discovery-token-ca-cert-hash sha256:{{ cert_hash }}"
+
+  #- name: Unimos el Worker al clúster Kubernetes
+  #shell: "kubeadm join {{ ip_master }}:6443 --token {{ token_hash }} --discovery-token-ca-cert-hash sha256:{{ cert_hash }}"
+  ##register: kubeadm_join
+  #become: yes
+  
+  #- name: Resultado de la unión del Worker al clúster
+  #debug:
+  #  msg: "{{ kubeadm_join.stdout_lines }}"
+

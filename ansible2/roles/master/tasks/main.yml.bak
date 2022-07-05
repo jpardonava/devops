@@ -1,0 +1,41 @@
+- name: Habilitamos los puertos necesarios para el master (9)
+  firewalld:
+    permanent: true
+    zone: public
+    port: "{{ item.port }}"
+    state: "{{ item.state }}"
+  loop:
+    "{{ port_master }}"
+  become: yes
+
+- name: Agregando regla para permitir el acceso de los workers al master (10)
+  firewalld:
+    rich_rule: "rule family=ipv4 source address={{ hostvars[item].ansible_host }}/32 port port=6443 protocol=tcp accept"
+    permanent: true
+    state: enabled
+  when: hostvars[item].ansible_host is defined
+  with_items: "{{ groups.workers }}"
+  become: yes
+
+- name: Reiniciando el servicio Firewalld 
+  systemd:
+    name: firewalld
+    state: restarted
+  become: yes
+
+- name: Descargando imágenes requeridas por Kubernetes (11)
+  shell: kubeadm config images pull
+  become: yes 
+
+- debug:
+    msg: "Se ejecutara: kubeadm init --apiserver-advertise-address {{ ansible_host }} --pod-network-cidr {{ pod_network }}"
+
+- name: Instalamos el plugin CNI de kubernetes y definimos la red de los PODs (12)
+  shell: "kubeadm init --apiserver-advertise-address {{ ansible_host }} --pod-network-cidr {{ pod_network }}"
+  register: kubeadd_cmd
+  become: yes
+
+- name: Mostrando la salida de la ejecución del kubeadm init
+  debug:
+    msg: "{{ kubeadd_cmd.stdout_lines }}"
+
