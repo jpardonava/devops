@@ -1,0 +1,13 @@
+---
+
+- name: prueba de paso de variables
+  hosts: master
+  roles:
+    - master
+
+- name: prueba de paso de variables
+  hosts: workers
+  gather_facts: true
+  roles:
+    - workers
+

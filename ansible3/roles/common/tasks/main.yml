@@ -1,0 +1,64 @@
+---
+
+- name: Configuramos el hostname
+  hostname:
+    name: "{{inventory_hostname}}.{{labdomain}}"
+    use: systemd
+  when: inventory_hostname is regex("work*|master*")
+  become: yes
+
+- name: Agregamos los DNS de los demás hosts
+  lineinfile:
+    dest: /etc/hosts
+    regexp: '.*{{ item }}$'
+    line: "{{ hostvars[item].ip_interna }} {{item}} {{item}}.{{labdomain}}"
+    state: present
+  when: hostvars[item].ansible_host is defined
+  with_items: "{{ groups.all }}"
+  become: yes
+
+- name: Actualizar a los ultimos paquetes del sistema
+  dnf:
+    name: "*"
+    state: latest
+  notify: reboot_vm
+  become: yes
+
+
+- name: Deshabilitamos SELinux
+  selinux:
+    state: disabled
+  notify: reboot_vm 
+  become: yes
+
+- name: Instalamoos paquetes requeridos en todas las maquinas (Red Hat/Centos)
+  dnf:
+    name: "{{ dnf_packages_common }}"
+    state: present
+  become: yes  
+
+- name: Iniciar el servicio de hora
+  systemd:
+    name: chronyd
+    state: started
+    enabled: yes
+
+- name: Iniciar el servicio de firewall
+  systemd:
+    name: firewalld
+    state: started
+    enabled: yes
+
+# zona Europa/Madrid
+- name: Configurando el timezone a Europe/Madrid
+  timezone:
+    name: Europe/Madrid
+  become: yes
+  
+- name: Habilitar servicio Chronyd (Red Hat)
+  systemd:
+    name: chronyd
+    state: started
+    enabled: yes
+    masked: no
+  become: yes
