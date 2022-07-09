@@ -1,0 +1,11 @@
+---
+
+# Ejecutamos las configuraciones comunes a todos los nodos
+- import_playbook: 01-configuraciones-comunes.yml
+# Ejecutamos las configuraciones correspondientes a los nodos NFS
+- import_playbook: 02-configurando-nfs.yml
+# Ejecutamos las configuraciones comunes a los masters y workers
+- import_playbook: 03-configuraciones-master-worker-common.yml
+# Ejecutamos las configuraciones correspondientes al nodo Master y Worker
+- import_playbook: 04-configuraciones-master-workers.yml
+

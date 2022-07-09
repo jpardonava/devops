@@ -1,0 +1,8 @@
+---
+
+- name: Realizando configuraciones comunes a los masters y workers
+  hosts: master:workers
+  gather_facts: true
+  roles:
+    - master_workers
+    

@@ -1,0 +1,111 @@
+
+- name: Habilitamos los puertos necesarios para el master (9)
+  firewalld:
+    permanent: true
+    zone: public
+    port: "{{ item.port }}"
+    state: "{{ item.state }}"
+  loop:
+    "{{ port_master }}"
+  become: yes
+
+- name: Agregando regla para permitir el acceso de los workers al master (10)
+  firewalld:
+    rich_rule: "rule family=ipv4 source address={{ hostvars[item].ip_interna }}/32 port port=6443 protocol=tcp accept"
+    permanent: true
+    state: enabled
+  when: hostvars[item].ansible_host is defined
+  with_items: "{{ groups.workers }}"
+  become: yes
+
+- name: Reiniciando el servicio Firewalld (10) 
+  systemd:
+    name: firewalld
+    state: restarted
+  become: true
+
+- name: Descargando imágenes requeridas por Kubernetes (11)
+  shell: kubeadm config images pull
+  become: true 
+
+- debug:
+    msg: "Se ejecutara: kubeadm init --apiserver-advertise-address {{ ansible_host }} --pod-network-cidr {{ pod_network }}"
+
+- name: Instalamos el plugin CNI de kubernetes y definimos la red de los PODs (12)
+  shell: "kubeadm init --apiserver-advertise-address {{ ansible_host }} --pod-network-cidr {{ pod_network }}"
+  register: kubeadd_cmd
+  become: true
+
+- name: Mostrando la salida de la ejecución del kubeadm init
+  debug:
+    msg: "{{ kubeadd_cmd.stdout_lines }}"
+
+
+- name: Obtencion del comando para añadir los hosts (12)
+  shell: "kubeadm token create --print-join-command"
+  register: kubeadm_create
+  become: true
+
+- name: Mostrando la salida del comando que genera el nuevo codigo
+  debug:
+    msg: "{{ kubeadm_create.stdout }}"
+
+- name: Fijamos el valor de la variable de la linea del comando para el registro de workers
+  set_fact:
+    commando_join_worker: "{{ kubeadm_create.stdout }}"
+
+- name: Comando para el registro
+  debug:
+    msg: "{{ commando_join_worker }}"
+
+
+- name: Create directorio para acceso al cluster (14)
+  file: 
+    path: /home/azureuser/.kube
+    state: directory
+    owner: azureuser
+    group: users
+    mode: 0755
+  become: true  
+
+- name: Copiamos el fichero de configuracion de kubernetes (14)
+  copy:
+    src: /etc/kubernetes/admin.conf 
+    dest: /home/azureuser/.kube/config
+    remote_src: yes
+    owner: azureuser
+    group: users
+  become: true
+
+
+- name: Exportar la configuracion de kubeadmin (13)
+  shell: "export KUBECONFIG=/home/azureuser/.kube/config"
+  register: kubeadm_export
+
+- name: Salida del comando del export KUBECONFIG
+  debug:
+    msg: "{{ kubeadm_export.stdout }}"
+
+- name: Aplicamos la definicion de las politicas de red en el nodo master (16.2)
+  shell: "export KUBECONFIG=/home/azureuser/.kube/config;kubectl apply -f https://docs.projectcalico.org/manifests/canal.yaml"
+  register: kubeadm_apply
+
+- name: Mostrando la salida del comando que genera las politicas
+  debug:
+    msg: "{{ kubeadm_apply.stdout }}"
+
+- name: Rebotamos el master (16.3) 
+  reboot:
+  become: true 
+
+- name: Esperamos 20 segundos para el inicio de los servicios
+  pause:
+    seconds: 5
+
+    #- name: Instalacion del Ingress Controller HAProxy (17)
+    #shell: "export KUBECONFIG=/home/azureuser/.kube/config;kubectl apply -f https://raw.githubusercontent.com/haproxytech/kubernetes-ingress/master/deploy/haproxy-ingress.yaml"
+    #register: kubeadm_haproxy
+
+    #- name: Mostrando la salida del comando para instalacion HAPROXY
+    #debug:
+    #msg: "{{ kubeadm_haproxy.stdout }}" 

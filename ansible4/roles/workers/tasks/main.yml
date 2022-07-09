@@ -1,0 +1,39 @@
+  
+- debug:
+    msg: "La IP del master es: {{ ip_master }}"
+  when: ip_master is defined
+
+- debug:
+        msg: "Comando para el alta de los workers: {{ comando_join_worker }}"
+  when: comando_join_worker is defined  
+
+- name: Habilitamos los puertos necesarios (18) 
+  firewalld:
+    permanent: true
+    zone: public
+    port: "{{ item.port }}"
+    state: "{{ item.state }}"
+  loop:
+    "{{ port_worker }}"
+  become: yes
+
+- name: Reiniciando el servicio Firewalld (18)
+  systemd:
+    name: firewalld
+    state: restarted
+  become: yes
+
+
+- name: Mostramos el comando de unión del worker al master
+  debug:
+    msg: "Se ejecutará: {{ comando_join_worker }}"
+
+- name: Unimos el Worker al clúster Kubernetes (19)
+  shell: " {{ comando_join_worker }}"
+  register: kubeadm_join
+  become: yes
+
+- name: Resultado de la unión del Worker al clúster
+  debug:
+    msg: "{{ kubeadm_join.stdout_lines }}"
+

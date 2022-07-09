@@ -1,0 +1,7 @@
+---
+
+docker_packages: ['docker-ce', 'docker-ce-cli', 'containerd.io']
+kubernetes_packages: ['kubelet', 'kubeadm', 'kubectl']
+VERSION: "1.24"
+VERSION_MINOR: "1.24.1"
+OS: "CentOS_8_Stream"

@@ -1,0 +1,8 @@
+---
+
+- name: Realizando el Despliegue de la aplicación sobre Kubernetes
+  hosts: master
+  gather_facts: true
+  roles:
+    - app
+  

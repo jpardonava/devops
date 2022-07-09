@@ -1,0 +1,5 @@
+---
+# vars file for app
+#
+NFS_INTERNAL_IP: "{{ hostvars['master'].ip_interna }}"
+NFS_EXPORT_FILE_PATH: "/mnt/nfs"

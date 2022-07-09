@@ -1,0 +1,8 @@
+---
+
+- name: Realizando configuraciones comunes a todos los nodos
+  hosts: masters:workers
+  gather_facts: true
+  roles:
+    - common
+    

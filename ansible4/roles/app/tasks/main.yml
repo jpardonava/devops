@@ -1,0 +1,42 @@
+---
+# tasks file for app
+#
+- name: Creamos un namespace llamado example (1)
+  shell: "export KUBECONFIG=/home/azureuser/.kube/config;kubectl create namespace example"
+  register: kubeadm_create_namespace
+
+- name: Salida de la creacion del create de namespace example (1)
+  debug:
+    msg: "{{ kubeadm_create_namespace.stdout }}"
+
+- name: Comprobamos que se ha creado el namespace (2)
+  shell: "export KUBECONFIG=/home/azureuser/.kube/config;kubectl get namespaces"
+  register: kubeadm_check_namespace
+
+- name: Salida de la comprobacion del amespace (2)
+  debug:
+    msg: "{{ kubeadm_check_namespace.stdout }}"
+
+
+## Copiando los archivos de despliegue de las aplicaciones al master ##
+- name: Copiando archivo de la aplicacion al master (3)
+  copy:
+    src: "myapp.yaml"
+    dest: "/home/azureuser/myapp.yaml"
+    mode: '0644'
+
+- name:  Crear recursos de la aplicación (3)
+  shell: "export KUBECONFIG=/home/azureuser/.kube/config;kubectl apply -f /home/azureuser/myapp.yaml"
+  register: kubeadm_recursos_namespace
+
+- name: Salida del despliegue de la aplicacion (3)
+  debug:
+    msg: "{{ kubeadm_recursos_namespace.stdout }}"
+
+- name:  Consultar los recursos deployment,pods,services (4)
+  shell: "export KUBECONFIG=/home/azureuser/.kube/config;kubectl get deployment,pods,services -n example"
+  register: kubeadm_recursos_namespace
+
+- name: Salida de la consulta de recursos (4)
+  debug:
+    msg: "{{ kubeadm_recursos_namespace.stdout }}"

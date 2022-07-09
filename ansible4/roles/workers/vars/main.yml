@@ -1,0 +1,15 @@
+---
+
+# Obtenemos el hash y token mostrado luego de ejecutar kubeadm init --pod-network-cidr en el playbook anterior
+# Así podemos usarlos para ejecutar el kubeadm join
+
+#cert_hash: "{{ hostvars['master'].cert_hash }}"
+#token_hash: "{{ hostvars['master'].token_hash }}"
+ip_master: "{{ hostvars['master'].ansible_host }}"
+comando_join_worker: "{{ hostvars['master'].commando_join_worker }}"
+
+port_worker: 
+  - {port: 8285/udp, state: enabled }
+  - {port: 8472/udp, state: enabled  }
+  - {port: 10250/tcp, state: enabled }
+  - {port: 30000-32767/tcp, state: enabled }

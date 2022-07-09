@@ -1,0 +1,128 @@
+- name: Habilitamos el módulo de Kernel br_netfilter (1)
+  modprobe:
+    name: br_netfilter
+    state: present
+  become: yes
+
+- name: Habilitamos el enmascaramiento en la zona public (1)
+  firewalld:
+    masquerade: yes
+    state: enabled
+    permanent: true
+    zone: public
+  become: yes
+
+- name: Creando el archivo /etc/sysctl.d/k8s.conf (1)
+  copy:
+    dest: "/etc/sysctl.d/k8s.conf"
+    content: |
+      net.bridge.bridge-nf-call-ip6tables = 1
+      net.bridge.bridge-nf-call-iptables = 1
+  become: yes
+
+- name: Recargamos todas las variables de sysctl (1)
+  shell: sysctl --system
+  become: yes
+
+- name: Desactivamos la memoria Swap (2)
+  shell: swapoff -a
+  become: yes
+   
+- name: Comentamos la línea de la particion swap del /etc/fstab (2)
+  replace:
+    path: /etc/fstab
+    regexp: '^([^#].*?\sswap\s+.*)$'
+    replace: '# \1'
+  notify: reboot_vm
+  become: yes
+
+- name: Descarga de repositorio (3)
+  get_url:
+    url: https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/{{ OS }}/devel:kubic:libcontainers:stable.repo
+    dest: /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo
+
+- name: Descarga de repositorio cri-o (3)
+  get_url:
+    url: https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/{{ VERSION }}:/{{ VERSION_MINOR }}/{{ OS }}/devel:kubic:libcontainers:stable:cri-o:{{ VERSION }}:{{ VERSION_MINOR}}.repo
+    dest: /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:{{ VERSION }}.repo
+
+- name: Instalar paquete cri-o (3)
+  dnf:
+    name: cri-o
+    state: latest
+
+- name: Crear fichero que habilita los modulos de kernel para cri-o (4)
+  copy:
+    dest: "/etc/modules-load.d/crio.conf"
+    content: |
+      overlay
+      br_netfilter
+  become: yes
+
+- name: Habilitar el servicio de cri-o y lo iniciamos (5)
+  systemd:
+    name: crio
+    state: started
+    enabled: yes
+
+- name: Configuramos el AllowZoneDrifting=no en firewalld
+  lineinfile:
+    dest: /etc/firewalld/firewalld.conf
+    regexp: '^AllowZoneDrifting='
+    line: "AllowZoneDrifting=no"
+    state: present
+  notify: reload_firewalld 
+  become: yes
+  
+- name: Habilitamos puertos usados por la SDN Flannel para Azure 8285 UDP
+  firewalld:
+    port: 8285/udp
+    permanent: true
+    state: enabled
+  notify: reload_firewalld
+  become: yes
+  
+- name: Habilitamos puertos usados por la SDN Flannel para Azure 8472 UDP
+  firewalld:
+    port: 8472/udp
+    permanent: true
+    state: enabled
+  notify: reload_firewalld
+  become: yes
+
+- name: Habilitar y reiniciar el servicio firewalld (Red Hat)
+  systemd:
+    name: firewalld
+    state: restarted
+    enabled: yes
+    masked: no
+  become: yes
+  
+
+- name: Configuramos el repositorio de Kubernetes (6)
+  yum_repository:
+    name: Kubernetes
+    description: Repositorio oficial de Kubernetes
+    baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+    enabled: yes
+    gpgcheck: yes
+    repo_gpgcheck: yes
+    gpgkey: https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+    exclude: kubelet kubeadm kubectl
+  become: yes
+
+- name: Instalamos Kubernetes (7)
+  dnf:
+    name: "{{ kubernetes_packages }}"
+    state: present
+    disable_excludes: Kubernetes
+  become: yes
+
+- name: Habilitar e iniciamos el servicio de Kubernetes (8)
+  systemd:
+    name: kubelet
+    state: started
+    enabled: yes
+    masked: no
+  become: yes
+  
